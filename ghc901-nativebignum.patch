@@ -1,0 +1,67 @@
+diff --git a/pkgs/development/compilers/ghc/9.0.1.nix b/pkgs/development/compilers/ghc/9.0.1.nix
+index f5a6b5f3..c91bdba1 100644
+--- a/pkgs/development/compilers/ghc/9.0.1.nix
++++ b/pkgs/development/compilers/ghc/9.0.1.nix
+@@ -17,9 +17,11 @@
+   # build-time dependency too.
+   buildLlvmPackages, llvmPackages
+ 
+-, # If enabled, GHC will be built with the GPL-free but slower integer-simple
+-  # library instead of the faster but GPLed integer-gmp library.
+-  enableIntegerSimple ? !(lib.meta.availableOn stdenv.hostPlatform gmp), gmp
++, # If enabled, GHC will be built with the GPL-free but slightly slower native
++  # bignum backend instead of the faster but GPLed gmp backend.
++  enableNativeBignum ? !(lib.meta.availableOn stdenv.hostPlatform gmp)
++
++, gmp
+ 
+ , # If enabled, use -fPIC when compiling static libs.
+   enableRelocatedStaticLibs ? stdenv.targetPlatform != stdenv.hostPlatform
+@@ -44,7 +46,7 @@
+   disableLargeAddressSpace ? stdenv.targetPlatform.isDarwin && stdenv.targetPlatform.isAarch64
+ }:
+ 
+-assert !enableIntegerSimple -> gmp != null;
++assert !enableNativeBignum -> gmp != null;
+ 
+ let
+   inherit (stdenv) buildPlatform hostPlatform targetPlatform;
+@@ -62,7 +64,7 @@ let
+     include mk/flavours/\$(BuildFlavour).mk
+     endif
+     DYNAMIC_GHC_PROGRAMS = ${if enableShared then "YES" else "NO"}
+-    INTEGER_LIBRARY = ${if enableIntegerSimple then "integer-simple" else "integer-gmp"}
++    BIGNUM_BACKEND = ${if enableNativeBignum then "native" else "gmp"}
+   '' + lib.optionalString (targetPlatform != hostPlatform) ''
+     Stage1Only = ${if targetPlatform.system == hostPlatform.system then "NO" else "YES"}
+     CrossCompilePrefix = ${targetPrefix}
+@@ -81,7 +83,7 @@ let
+   # Splicer will pull out correct variations
+   libDeps = platform: lib.optional enableTerminfo ncurses
+     ++ [libffi]
+-    ++ lib.optional (!enableIntegerSimple) gmp
++    ++ lib.optional (!enableNativeBignum) gmp
+     ++ lib.optional (platform.libc != "glibc" && !targetPlatform.isWindows) libiconv;
+ 
+   toolsForTarget = [
+@@ -181,7 +183,7 @@ stdenv.mkDerivation (rec {
+     "--with-system-libffi"
+     "--with-ffi-includes=${targetPackages.libffi.dev}/include"
+     "--with-ffi-libraries=${targetPackages.libffi.out}/lib"
+-  ] ++ lib.optionals (targetPlatform == hostPlatform && !enableIntegerSimple) [
++  ] ++ lib.optionals (targetPlatform == hostPlatform && !enableNativeBignum) [
+     "--with-gmp-includes=${targetPackages.gmp.dev}/include"
+     "--with-gmp-libraries=${targetPackages.gmp.out}/lib"
+   ] ++ lib.optionals (targetPlatform == hostPlatform && hostPlatform.libc != "glibc" && !targetPlatform.isWindows) [
+diff --git a/pkgs/top-level/haskell-packages.nix b/pkgs/top-level/haskell-packages.nix
+index 8bea40ef..60985bc4 100644
+--- a/pkgs/top-level/haskell-packages.nix
++++ b/pkgs/top-level/haskell-packages.nix
+@@ -12,6 +12,7 @@ let
+   ];
+ 
+   nativeBignumIncludes = [
++    "ghc901"
+     "ghcHEAD"
+   ];
+ 
