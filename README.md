@@ -10,8 +10,7 @@ Building the GHC 9.0.1 (with native bignum) and pushing its binary to cachix
 
 I want to build some static binaries without linking the GMP(LGPL).
 
-
-## Example
+## Example (not working)
 
 ```nix
 let
