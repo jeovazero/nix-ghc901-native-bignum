@@ -8,19 +8,17 @@ let
     sha256 = "1056r3383aaf5zhf7rbvka76gqxb8b7rwqxnmar29vxhs9h56m5k";
   };
 
-  patches = [ ./ghc901-nativebignum.patch ./ghc901-fix-order-link-opts.patch ];
+  patch = ./ghc901-nativebignum.patch;
   
   patchedPkgs = nixpkgs.runCommand "nixos-21.05-2021-07-01-ghc901-nativebignum"
      {
-       inherit pinnedPkgs patches;
+       inherit pinnedPkgs patch;
      }
      ''
        cp -r $pinnedPkgs $out
        chmod -R +w $out
-       for patch in $patches; do
-         echo "Applying patch $patch";
-         patch -d $out -p1 < "$patch";
-       done
+       echo "Applying patch $patch";
+       patch -d $out -p1 < "$patch";
      '';
 
   patchedNixpkgs = import patchedPkgs {};
