@@ -3,7 +3,7 @@ let
 
   pinnedPkgs = import ../pinned.nix;
   
-  patch = ./ghc901-nativebignum.patch;
+  patch = ../ghc901-nativebignum.patch;
   
   patchedPkgs = nixpkgs.runCommand "nixos-21.05-2021-07-01-ghc901-nativebignum"
      {
