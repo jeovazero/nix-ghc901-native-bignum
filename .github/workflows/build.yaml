@@ -16,6 +16,6 @@ jobs:
       with:
         name: ghc9-native-bignum
         signingKey: '${{ secrets.CACHIX_SIGNING_KEY }}'
-    - run: nix-build
+    - run: nix-build ghc-flavors/native-bignum-with-patch.nix
       env:
         NIX_PATH: nixpkgs=https://github.com/nixos/nixpkgs/archive/21b696caf392ad6fa513caf3327d0aa0430ffb72.tar.gz
