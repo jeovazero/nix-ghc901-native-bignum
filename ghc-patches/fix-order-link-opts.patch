@@ -1,0 +1,30 @@
+diff --git a/compiler/GHC/Unit/State.hs b/compiler/GHC/Unit/State.hs
+index 2efd962..072c853 100644
+--- a/compiler/GHC/Unit/State.hs
++++ b/compiler/GHC/Unit/State.hs
+@@ -1814,11 +1814,24 @@ getUnitLinkOpts :: DynFlags -> [UnitId] -> IO ([String], [String], [String])
+ getUnitLinkOpts dflags pkgs =
+   collectLinkOpts dflags `fmap` getPreloadUnitsAnd dflags pkgs
+ 
++-- | The order of '-lc' and '-lpthread' when building a
++-- static binary must be '-lpthread' before '-lc' ('-lpthread -lc')
++-- See https://gitlab.haskell.org/ghc/ghc/-/issues/19029
++-- This function ensures '-lrt -lpthread' as the first flags
++-- The '-lrt' is dependency of '-lpthread'
++fixOrderLinkOpts :: [String] -> [String]
++fixOrderLinkOpts opts
++  | pthread `elem` opts = rt:pthread:filter (`notElem` [rt,pthread]) opts
++  | otherwise = opts
++  where
++    rt = "-lrt"
++    pthread = "-lpthread"
++
+ collectLinkOpts :: DynFlags -> [UnitInfo] -> ([String], [String], [String])
+ collectLinkOpts dflags ps =
+     (
+         concatMap (map ("-l" ++) . packageHsLibs dflags) ps,
+-        concatMap (map ("-l" ++) . unitExtDepLibsSys) ps,
++        fixOrderLinkOpts $ concatMap (map ("-l" ++) . unitExtDepLibsSys) ps,
+         concatMap unitLinkerOptions ps
+     )
+ collectArchives :: DynFlags -> UnitInfo -> IO [FilePath]
