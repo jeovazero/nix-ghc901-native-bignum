@@ -1,16 +1,14 @@
 let
-    patched = import ./default.nix;
-    inherit (patched) pkgs haskellPackages;
-    app = haskellPackages.callCabal2nix "app" ./app { };
-in
-pkgs.haskell.lib.overrideCabal app (drv: {
-  enableSharedExecutables = false;
-  enableSharedLibraries = false;
-  configureFlags = [
-    "--ghc-option=-v"
-    "--ghc-option=-optl=-static"
-    "--ghc-option=-optl=-L${pkgs.glibc.static}/lib"
-    "--ghc-option=-optl=-L${pkgs.zlib.static}/lib"
-    "--ghc-option=-optl=-L${pkgs.libffi.overrideAttrs (old: { dontDisableStatic = true; })}/lib"
-  ];
-})
+  nixpkgs = import <nixpkgs> {};
+  inherit (nixpkgs) pkgs;
+
+  gmp = import ./ghc-flavors/gmp.nix;
+  native = import ./ghc-flavors/native-bignum.nix;
+  nativeWithPatch = import ./ghc-flavors/native-bignum-with-patch.nix;
+
+  genStatic = import ./gen-static.nix;
+in {
+  gmp = genStatic { mypkgs = gmp; withGmp = true; };
+  native = genStatic { mypkgs = native; };
+  nativeWithPatch = genStatic { mypkgs = nativeWithPatch; };
+}
