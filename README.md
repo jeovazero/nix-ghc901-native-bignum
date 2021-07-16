@@ -29,8 +29,8 @@ https://gitlab.haskell.org/ghc/ghc/-/issues/19029
 The problem: the GHC is generating a compilation command with flags in wrong
 order, the flag `-lc` must be before `-lpthread`.
 
-So, I cloned the ghc repository to understand how theses flagsare generated,
-then I did a patch to fix the flags order:
+So, I cloned the ghc repository to understand how theses flags are generated,
+then I did a patch to fix the order of the flags:
 
 ```diff
 diff --git a/compiler/GHC/Unit/State.hs b/compiler/GHC/Unit/State.hs
@@ -73,7 +73,21 @@ So, I added the '-lrt' before '-lpthread' and the static binary build worked.
 
 Also, the GHC 9.0.1 with gmp enabled have the same problem with '-lc -lpthread'.
 
-## Reproducing
+## Results
+
+Flags before:
+```
+-lHSbase-4.15.0.0 -lHSghc-bignum-1.0 -lHSghc-prim-0.7.0 -lHSrts -lc -lm -lm -lrt -ldl -lffi -lpthread -static
+```
+
+Flags after (with my patch):
+
+```
+-lHSbase-4.15.0.0 -lHSghc-bignum-1.0 -lHSghc-prim-0.7.0 -lHSrts -lrt -lpthread -lc -lm -lm -ldl -lffi -static
+```
+
+
+## Testing my patch
 
 1. You must have [Nix](https://nixos.org/download.html) installed
 
@@ -89,7 +103,7 @@ Also, the GHC 9.0.1 with gmp enabled have the same problem with '-lc -lpthread'.
 
 4. Run
     ```bash
-    $ nix-build static.nix -A 'native'
+    $ nix-build static.nix -A 'nativeWithPatch'
     ```
 
 There are 3 flavors:
