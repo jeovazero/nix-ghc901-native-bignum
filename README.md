@@ -14,7 +14,7 @@ I want to build some static binaries without linking the GMP (LGPL).
 ## Problems
 
 Well, I did a small patch in the nixpkgs allowing me to use a GHC 9.0.1 with
-`BIGNUM_BACKEND=native`. But, when I tried to compile my project I had the
+`BIGNUM_BACKEND=native`. But, when I tried to compile my project, I had the
 following error:
 
 ```
@@ -65,8 +65,8 @@ index 2efd962..072c853 100644
  collectArchives :: DynFlags -> UnitInfo -> IO [FilePath]
 ```
 
-I tried to use this fix with only the '-lpthread' at the head of the list, but a had a
-compilation error about the 'librt', and I found this:
+I tried to use this fix with only the '-lpthread' at the head of the list, but I got a
+compilation error about the 'librt', and then I found this:
 https://stackoverflow.com/questions/58848694/gcc-whole-archive-recipe-for-static-linking-to-pthread-stopped-working-in-rec
 
 So, I added the '-lrt' before '-lpthread' and the static binary build worked. 
@@ -80,14 +80,14 @@ Flags before:
 -lHSbase-4.15.0.0 -lHSghc-bignum-1.0 -lHSghc-prim-0.7.0 -lHSrts -lc -lm -lm -lrt -ldl -lffi -lpthread -static
 ```
 
-Flags after (with my patch):
+Flags after (with the patch):
 
 ```
 -lHSbase-4.15.0.0 -lHSghc-bignum-1.0 -lHSghc-prim-0.7.0 -lHSrts -lrt -lpthread -lc -lm -lm -ldl -lffi -static
 ```
 
 
-## Testing my patch
+## Testing the patch
 
 1. You must have [Nix](https://nixos.org/download.html) installed
 
@@ -103,12 +103,12 @@ Flags after (with my patch):
 
 4. Run
     ```bash
-    $ nix-build static.nix -A 'nativeWithPatch'
+    $ nix-build static.nix -A nativeBignumWithPatch
     ```
 
 There are 3 flavors:
 
 - `gmp`: GHC 9.0.1 with bignum backend gmp
-- `native`: GHC 9.0.1 with bignum backend native
-- `nativeWithPatch`: the same of `native` but with my patch 
+- `nativeBignum`: GHC 9.0.1 with bignum backend native
+- `nativeBignumWithPatch`: the same of `nativeBignum` but with my patch 
 
