@@ -26,7 +26,7 @@ let
                 "--ghc-option=-optl=-L${pkgs.zlib.static}/lib"
                 "--ghc-option=-optl=-L${pkgs.libffi.overrideAttrs (old: { dontDisableStatic = true; })}/lib"
               ] ++ pkgs.lib.optional verbose verboseOpt 
-                ++ pkgs.lib.optional (builtins.trace withGmp withGmp) gmpLibOpt
+                ++ pkgs.lib.optional withGmp gmpLibOpt
                 ++ extraFlags;
             });
 in {
