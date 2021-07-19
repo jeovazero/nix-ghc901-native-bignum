@@ -13,7 +13,7 @@ I want to build some static binaries without linking the GMP (LGPL).
 
 ## Problems
 
-Well, I did a small patch in the nixpkgs allowing me to use a GHC 9.0.1 with
+Well, I made a small patch in the nixpkgs allowing me to use a GHC 9.0.1 with
 `BIGNUM_BACKEND=native`. But, when I tried to compile my project, I had the
 following error:
 
@@ -30,7 +30,7 @@ The problem: the GHC is generating a compilation command with flags in wrong
 order, the flag `-lc` must be before `-lpthread`.
 
 So, I cloned the ghc repository to understand how theses flags are generated,
-then I did a patch to fix the order of the flags:
+then I made a patch to fix the order of the flags:
 
 ```diff
 diff --git a/compiler/GHC/Unit/State.hs b/compiler/GHC/Unit/State.hs
@@ -71,9 +71,9 @@ https://stackoverflow.com/questions/58848694/gcc-whole-archive-recipe-for-static
 
 So, I added the '-lrt' before '-lpthread' and the static binary build worked. 
 
-Also, the GHC 9.0.1 with gmp enabled have the same problem with '-lc -lpthread'.
+Also, the GHC 9.0.1 with gmp enabled has the same problem with the '-lc -lpthread'.
 
-## Results
+#### Results
 
 Flags before:
 ```
@@ -87,7 +87,7 @@ Flags after (with the patch):
 ```
 
 
-## Testing the patch
+#### Testing the patch
 
 1. You must have [Nix](https://nixos.org/download.html) installed
 
@@ -106,9 +106,66 @@ Flags after (with the patch):
     $ nix-build static.nix -A nativeBignumWithPatch
     ```
 
-There are 3 flavors:
+There are 3 flavors that you can try:
 
 - `gmp`: GHC 9.0.1 with bignum backend gmp
 - `nativeBignum`: GHC 9.0.1 with bignum backend native
-- `nativeBignumWithPatch`: the same of `nativeBignum` but with my patch 
+- `nativeBignumWithPatch`: the same of `nativeBignum` but with the patch 
 
+## Usage
+
+To avoid a huge compilation time, you can use the following cache:
+
+```bash
+$ cachix use ghc9-native-bignum
+```
+
+[Instructions to install the cachix](https://docs.cachix.org/installation.html)
+
+### `genStatic.nativeBignumWithPatch`
+
+It will try to generate a static binary using the GHC 9.0.1 (native bignum enabled)
+
+```nix
+let
+  repo = builtins.fetchTarball {
+    name = "nix-ghc901-native-bignum";
+    url = "https://github.com/jeovazero/nix-ghc901-native-bignum/archive/cd691a8965cfe531335a53bb0b8140eae2ebe825.tar.gz";
+    sha256 = "1apa4fsczz6hx91sms5zmsv89qdcdvmjsjn424ijad3gib30ynib";
+  };
+
+  inherit (import repo) genStatic;
+
+  # `src` is the location of the cabal project
+  app = { name = "app"; src = ./.; };
+in
+  genStatic.nativeBignumWithPatch { app = app; }
+```
+
+
+### `statify`
+
+There is a use case in this [repo](https://github.com/jeovazero/janitor/blob/main/build/static.nix#L4)
+
+```nix
+let
+  repo = builtins.fetchTarball {
+    name = "nix-ghc901-native-bignum";
+    url = "https://github.com/jeovazero/nix-ghc901-native-bignum/archive/cd691a8965cfe531335a53bb0b8140eae2ebe825.tar.gz";
+    sha256 = "1apa4fsczz6hx91sms5zmsv89qdcdvmjsjn424ijad3gib30ynib";
+  };
+
+  inherit (import repo) statify flavors;
+  inherit (flavors.nativeBignumWithPatch) haskellPackages pkgs;
+
+  myHSPkgs = haskellPackages.override {
+    overrides = self: super: { 
+      memory = self.callHackage "memory" "0.16.0" {};
+      cryptonite = self.callHackage "cryptonite" "0.29" {};
+    };
+  };
+
+  app = { name = "janitor"; src = ../.; };
+in
+  statify { haskellPackages = myHSPkgs; pkgs = pkgs;}  { app = app; }
+```
